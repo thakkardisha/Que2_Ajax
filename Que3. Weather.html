@@ -77,7 +77,8 @@
         margin: 3px 0;
         color: #555;
       }
-      #loadMore {
+      #loadMore,
+      #refreshBtn {
         margin-top: 15px;
         padding: 12px;
         cursor: pointer;
@@ -94,13 +95,13 @@
         placeholder="Enter city name (e.g., Delhi)"
       />
       <button id="searchBtn">Search</button>
+      <button id="refreshBtn" style="display: none">Refresh</button>
 
       <div id="weatherResult"></div>
       <button id="loadMore" style="display: none">Load More</button>
     </div>
 
     <script>
-      // JSON database of Indian cities with lat/lon
       const cities = {
         Mumbai: { lat: 19.076, lon: 72.8777 },
         Delhi: { lat: 28.6139, lon: 77.209 },
@@ -116,6 +117,7 @@
       const perPage = 5;
 
       const searchBtn = document.getElementById("searchBtn");
+      const refreshBtn = document.getElementById("refreshBtn");
       const loadMoreBtn = document.getElementById("loadMore");
       const weatherResult = document.getElementById("weatherResult");
       const cityInput = document.getElementById("cityInput");
@@ -127,6 +129,15 @@
         page = 1;
         weatherResult.innerHTML = "";
         fetchWeather(city, page);
+        refreshBtn.style.display = "block";
+      });
+
+      refreshBtn.addEventListener("click", () => {
+        if (currentCity) {
+          page = 1;
+          weatherResult.innerHTML = "";
+          fetchWeather(currentCity, page);
+        }
       });
 
       loadMoreBtn.addEventListener("click", () => {
