@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather App</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #825a7c, #3f061b);
+        margin: 0;
+        padding: 20px;
+      }
+      .weather-container {
+        max-width: 700px;
+        margin: auto;
+        background: white;
+        padding: 25px 30px;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      }
+      h2 {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #333;
+      }
+      input,
+      button {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+      }
+      button {
+        background: #3f061b;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      button:hover {
+        background: #a24a6a;
+      }
+      #weatherResult {
+        margin-top: 20px;
+      }
+      .weather-card {
+        display: flex;
+        align-items: center;
+        padding: 15px 10px;
+        margin-bottom: 15px;
+        border-radius: 10px;
+        background: #dacdd2;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: 0.3s;
+      }
+      .weather-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+      }
+      .weather-card img {
+        width: 60px;
+        height: 60px;
+        margin-right: 20px;
+      }
+      .weather-info {
+        flex: 1;
+      }
+      .weather-info h3 {
+        margin: 0 0 5px 0;
+        font-size: 18px;
+        color: #333;
+      }
+      .weather-info p {
+        margin: 3px 0;
+        color: #555;
+      }
+      #loadMore {
+        margin-top: 15px;
+        padding: 12px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="weather-container">
+      <h2>Weather App</h2>
+      <input
+        type="text"
+        id="cityInput"
+        placeholder="Enter city name (e.g., Delhi)"
+      />
+      <button id="searchBtn">Search</button>
+
+      <div id="weatherResult"></div>
+      <button id="loadMore" style="display: none">Load More</button>
+    </div>
+
+    <script>
+      // JSON database of Indian cities with lat/lon
+      const cities = {
+        Mumbai: { lat: 19.076, lon: 72.8777 },
+        Delhi: { lat: 28.6139, lon: 77.209 },
+        Bangalore: { lat: 12.9716, lon: 77.5946 },
+        Chennai: { lat: 13.0827, lon: 80.2707 },
+        Kolkata: { lat: 22.5726, lon: 88.3639 },
+        Ahmedabad: { lat: 23.0225, lon: 72.5714 },
+        Pune: { lat: 18.5204, lon: 73.8567 },
+      };
+
+      let currentCity = "";
+      let page = 1;
+      const perPage = 5;
+
+      const searchBtn = document.getElementById("searchBtn");
+      const loadMoreBtn = document.getElementById("loadMore");
+      const weatherResult = document.getElementById("weatherResult");
+      const cityInput = document.getElementById("cityInput");
+
+      searchBtn.addEventListener("click", () => {
+        const city = cityInput.value.trim();
+        if (!cities[city]) return alert("City not found in database!");
+        currentCity = city;
+        page = 1;
+        weatherResult.innerHTML = "";
+        fetchWeather(city, page);
+      });
+
+      loadMoreBtn.addEventListener("click", () => {
+        page++;
+        fetchWeather(currentCity, page);
+      });
+
+      function fetchWeather(city, page) {
+        const { lat, lon } = cities[city];
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode&timezone=Asia/Kolkata`;
+
+        fetch(url)
+          .then((response) => response.json())
+          .then((data) => {
+            const hourly = data.hourly;
+            const start = (page - 1) * perPage;
+            const end = page * perPage;
+            const slice = hourly.time.slice(start, end);
+
+            if (slice.length === 0) {
+              loadMoreBtn.style.display = "none";
+              return;
+            }
+
+            slice.forEach((time, i) => {
+              const temp = hourly.temperature_2m[start + i];
+              const code = hourly.weathercode[start + i];
+              const desc = weatherCodeToDesc(code);
+
+              const dt = new Date(time);
+              const date = dt.toLocaleDateString("en-IN");
+              const hour = dt.toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+
+              const icon = weatherCodeToIcon(code);
+
+              const card = document.createElement("div");
+              card.className = "weather-card";
+              card.innerHTML = `
+            <img src="${icon}" alt="icon">
+            <div class="weather-info">
+              <h3>${city} - ${date} ${hour}</h3>
+              <p>Temp: ${temp} °C</p>
+              <p>${desc}</p>
+            </div>
+          `;
+              weatherResult.appendChild(card);
+            });
+
+            loadMoreBtn.style.display =
+              slice.length < perPage ? "none" : "block";
+          })
+          .catch((err) => console.error("Error:", err));
+      }
+
+      function weatherCodeToDesc(code) {
+        const codes = {
+          0: "Clear sky",
+          1: "Mainly clear",
+          2: "Partly cloudy",
+          3: "Overcast",
+          45: "Fog",
+          48: "Depositing rime fog",
+          51: "Light drizzle",
+          53: "Moderate drizzle",
+          55: "Dense drizzle",
+          56: "Light freezing drizzle",
+          57: "Dense freezing drizzle",
+          61: "Slight rain",
+          63: "Moderate rain",
+          65: "Heavy rain",
+          66: "Light freezing rain",
+          67: "Heavy freezing rain",
+          71: "Slight snow fall",
+          73: "Moderate snow fall",
+          75: "Heavy snow fall",
+          77: "Snow grains",
+          80: "Slight rain showers",
+          81: "Moderate rain showers",
+          82: "Violent rain showers",
+          85: "Slight snow showers",
+          86: "Heavy snow showers",
+          95: "Thunderstorm",
+          96: "Thunderstorm with slight hail",
+          99: "Thunderstorm with heavy hail",
+        };
+        return codes[code] || "Unknown";
+      }
+
+      function weatherCodeToIcon(code) {
+        if (code === 0) return "https://openweathermap.org/img/wn/01d.png";
+        if (code === 1) return "https://openweathermap.org/img/wn/02d.png";
+        if (code === 2) return "https://openweathermap.org/img/wn/03d.png";
+        if (code === 3) return "https://openweathermap.org/img/wn/04d.png";
+        if ([45, 48].includes(code))
+          return "https://openweathermap.org/img/wn/50d.png";
+        if ([51, 53, 55].includes(code))
+          return "https://openweathermap.org/img/wn/09d.png";
+        if ([61, 63, 65].includes(code))
+          return "https://openweathermap.org/img/wn/10d.png";
+        if ([71, 73, 75, 77].includes(code))
+          return "https://openweathermap.org/img/wn/13d.png";
+        if ([80, 81, 82].includes(code))
+          return "https://openweathermap.org/img/wn/09d.png";
+        if ([95, 96, 99].includes(code))
+          return "https://openweathermap.org/img/wn/11d.png";
+        return "https://openweathermap.org/img/wn/01d.png";
+      }
+    </script>
+  </body>
+</html>

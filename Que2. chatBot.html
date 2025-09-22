@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat Bot</title>
+    <style>
+      body {
+        font-family: Arial;
+        background: linear-gradient(135deg, #825a7c, #3f061b);
+      }
+      .chat {
+        width: 400px;
+        margin: 50px auto;
+        background: rgb(236, 211, 211);
+        padding: 16px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      #messages {
+        height: 300px;
+        overflow-y: auto;
+        border: 0.1px solid #3f061b;
+        padding: 8px;
+        margin-bottom: 10px;
+        background: #fafafa;
+      }
+      .msg {
+        margin-bottom: 10px;
+      }
+      .user {
+        text-align: right;
+      }
+      .bot {
+        text-align: left;
+        color: #3f061b;
+      }
+      .meta {
+        font-size: 12px;
+        color: #666;
+      }
+      input,
+      button {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+      input {
+        width: calc(100% - 90px);
+        margin-right: 4px;
+        border: 1px solid #3f061b;
+      }
+      button {
+        width: 80px;
+        background: #3f061b;
+        color: white;
+        cursor: pointer;
+        border: none;
+      }
+      button:hover {
+        background: #ad2456;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat">
+      <h3>Chat Bot</h3>
+      <div id="messages"></div>
+      <input
+        id="message"
+        placeholder="Type your message..."
+        style="margin-bottom: 10px; width: 96%"
+      />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+      // Embedded JSON data
+      const responses = [
+        { question: "hi", reply: "Hello! How are you?" },
+        { question: "hello", reply: "Hi there! What can I do for you?" },
+        {
+          question: "how are you",
+          reply: "I am just a website bot, but I am doing great!",
+        },
+        { question: "bye", reply: "Goodbye! Have a nice day!" },
+        { question: "default", reply: "Sorry, I don't understand that." },
+      ];
+
+      const messagesDiv = document.getElementById("messages");
+
+      function renderMessage(text, sender) {
+        const div = document.createElement("div");
+        div.className = "msg " + sender;
+        div.innerHTML = `<div class="meta">${
+          sender === "user" ? "You" : "Person there"
+        }:</div>${text}`;
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      function sendMessage() {
+        const input = document.getElementById("message");
+        const userText = input.value.trim();
+        if (!userText) return;
+
+        renderMessage(userText, "user");
+        input.value = "";
+
+        // Simple reply logic: exact match (case-insensitive)
+        const lowerText = userText.toLowerCase();
+        let replyObj = responses.find((r) => r.question === lowerText);
+
+        if (!replyObj) {
+          replyObj = responses.find((r) => r.question === "default");
+        }
+
+        // Simulate typing delay
+        setTimeout(() => {
+          renderMessage(replyObj.reply, "bot");
+        }, 500);
+      }
+
+      // Press Enter to send
+      document.getElementById("message").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+    </script>
+  </body>
+</html>

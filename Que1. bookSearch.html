@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indian Mythological Books </title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #825a7c, #3f061b);
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #edd3e9;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+    }
+    .card h4 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      color: #34495e;
+    }
+    .card p {
+      font-size: 14px;
+      color: #7f8c8d;
+    }
+
+    .search-box {
+      margin: 20px auto 40px;
+      max-width: 500px;
+      position: relative;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #3498db;
+      border-radius: 8px;
+      outline: none;
+    }
+    .suggestions {
+      position: absolute;
+      top: 110%;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+      z-index: 10;
+    }
+    .suggestions div {
+      padding: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .suggestions div:hover {
+      background: #ecf0f1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <h2>Indian Mythology Book Search</h2>
+    <div class="search-box">
+      <input type="text" id="search" placeholder="Search mythological books...">
+      <div id="suggestions" class="suggestions"></div>
+    </div>
+
+    <h2>Books List – Indian Mythology</h2>
+    <div id="books" class="grid"></div>
+
+  </div>
+
+  <script>
+    // Helper to display book cards
+    function displayBooks(books) {
+      $("#books").empty();
+      books.forEach(book => {
+        $("#books").append(`
+          <div class="card">
+            <h4>${book.title}</h4>
+            <p>Author: ${book.authors && book.authors.length > 0 ? book.authors[0].name : "Unknown"}</p>
+            <p>Published: ${book.first_publish_year || "N/A"}</p>
+          </div>
+        `);
+      });
+    }
+
+    // Load Indian Mythology books initially
+    function loadMythBooks() {
+      $.ajax({
+        url: "https://openlibrary.org/subjects/indian_mythology.json?limit=8",
+        method: "GET",
+        success: function(data) {
+          if(data.works && data.works.length > 0) {
+            displayBooks(data.works);
+          } else {
+            $("#books").html("<p>No mythological books found.</p>");
+          }
+        },
+        error: function() {
+          $("#books").html("<p>Error fetching books.</p>");
+        }
+      });
+    }
+
+    $(document).ready(function() {
+      loadMythBooks();
+
+      $("#search").on("input", function() {
+        let query = $(this).val().trim();
+        if(query.length < 2) {
+          $("#suggestions").hide();
+          return;
+        }
+        $.ajax({
+            url: `https://openlibrary.org/search.json?q=${encodeURIComponent(query + ' indian mythology')}`,
+            method: "GET",
+            success: function(data) {
+                let results = data.docs;
+                if(results.length === 0) {
+                $("#suggestions").hide();
+                return;
+                }
+                $("#suggestions").empty().show();
+                results.slice(0,5).forEach(item => {
+                $("#suggestions").append(`<div data-title="${item.title}">${item.title} (${item.first_publish_year || "N/A"})</div>`);
+                });
+            }
+        });
+      });
+
+      $(document).on("click", "#suggestions div", function() {
+        let title = $(this).data("title");
+        $("#search").val(title);
+        $("#suggestions").hide();
+
+        $.ajax({
+          url: `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&limit=8`,
+          method: "GET",
+          success: function(data) {
+            let results = data.docs;
+            if(results && results.length > 0) {
+              // Convert to similar structure to “works” so displayBooks can work
+              let books = results.map(item => ({
+                title: item.title,
+                authors: item.author_name ? item.author_name.map(name => ({ name })) : [],
+                first_publish_year: item.first_publish_year
+              }));
+              displayBooks(books);
+            } else {
+              $("#books").html("<p>No books found for \"" + title + "\".</p>");
+            }
+          }
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>
